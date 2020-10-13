@@ -31,17 +31,22 @@ namespace CPSC_Mod_Manager
                 path = newPath;
                 displayname = newName;
                 enabled = newEnabled;
-            }
+                }
             public string path = "path";
             public string displayname = "defaultName";
-             public bool enabled = false;
+            public bool enabled = false;
+
+            public string InternalName = "";
+            public string Author = "";
+            public string ModVersion = "";
+            public string ModDescription = "";
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            if (Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(Application.ExecutablePath))) != "htdocs" || Path.GetFileName(Path.GetDirectoryName(Application.ExecutablePath)) != "mods")
+            if (Path.GetFileName(Path.GetDirectoryName(Application.ExecutablePath)) != "mods")
                 {
-                MessageBox.Show("This application should only be run from the /htdocs/mods/ directory.", "Wrong directory", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("This application should only be run from the /mods/ directory.", "Wrong directory", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 Close();
                 return;
                 }
@@ -71,7 +76,46 @@ namespace CPSC_Mod_Manager
 
                     checkedListBox1.Items.Add(newMod.displayname);
 
-                    if (enableds_from_config.ContainsKey(newMod.displayname))
+                    string modInfoPath = Path.Combine(dirInfo.FullName, "modinfo.txt");
+
+                    if (File.Exists(modInfoPath))    //if modinfo.txt exists in this mod's directory
+                        {
+                        string[] modinfo = File.ReadAllLines(modInfoPath);
+
+                        //read modinfo
+
+                        foreach (string line in modinfo)
+                            {
+                            string[] splitline = line.Split('=');
+                            
+                            if (splitline.Length == 1)  //if there wasn't a value after the equals sign
+                                {
+                                continue;
+                                }
+
+                            switch (splitline[0])   //read the key and use the value accordingly
+                                {
+                                case "name":
+                                    newMod.InternalName = splitline[1];
+                                    break;
+                                case "author":
+                                    newMod.Author = splitline[1];
+                                    break;
+                                case "version":
+                                    newMod.ModVersion = splitline[1];
+                                    break;
+                                case "description":
+                                    newMod.ModDescription = splitline[1].Replace("<newline>", "\n");
+                                    break;
+                                }
+                            }
+                        }
+                    else
+                        {
+                        File.Create(Path.Combine(dirInfo.FullName, "modinfo.txt")); //modinfo.txt didn't exist for this mod, create a new modinfo.txt
+                        }
+
+                    if (enableds_from_config.ContainsKey(newMod.displayname))   //if this mod is enabled in mod_config.ini, tick its box in the mod manager
                         {
                         if (enableds_from_config[newMod.displayname])
                             {
@@ -159,6 +203,11 @@ namespace CPSC_Mod_Manager
         
         foreach (FileInfo f in d.GetFiles())
             {
+                if (Path.GetFileName(f.FullName) == "modinfo.txt")
+                {
+                    continue;
+                }
+
                 string relativePath = f.FullName.Replace(root, "");
 
                 if (File.Exists(htDocsPath + relativePath))
@@ -177,6 +226,11 @@ namespace CPSC_Mod_Manager
 
             foreach (FileInfo f in d.GetFiles())
             {
+                if (Path.GetFileName(f.FullName) == "modinfo.txt")
+                    {
+                    continue;
+                    }
+
                 string relativePath = f.FullName.Replace(root, "");
 
                 if (File.Exists(htDocsPath + relativePath))
@@ -214,6 +268,11 @@ namespace CPSC_Mod_Manager
         {
             foreach (FileInfo f in d.GetFiles())
             {
+                if (Path.GetFileName(f.FullName) == "modinfo.txt")
+                {
+                    continue;
+                }
+
                 string relativePath = f.FullName.Replace(root, "");
                 if (File.Exists(htDocsPath + relativePath))
                     {
@@ -227,5 +286,59 @@ namespace CPSC_Mod_Manager
             }
         }
 
+        private void checkedListBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (checkedListBox1.SelectedIndex == -1)
+                {
+                return;
+                }
+
+            ModNameBox.Enabled = true;
+            ModAuthorBox.Enabled = true;
+            ModVersionBox.Enabled = true;
+            ModDescriptionBox.Enabled = true;
+
+            ModNameBox.Text = mods[checkedListBox1.SelectedIndex].InternalName;
+            ModAuthorBox.Text = mods[checkedListBox1.SelectedIndex].Author;
+            ModVersionBox.Text = mods[checkedListBox1.SelectedIndex].ModVersion;
+            ModDescriptionBox.Text = mods[checkedListBox1.SelectedIndex].ModDescription.Replace("<newline>","\n");
+        }
+
+
+        public void WriteNewModInfoTxt(mod selectedMod)
+        {
+            string txt = "";
+
+            txt += "name=" + selectedMod.InternalName+"\n";
+            txt += "author=" + selectedMod.Author + "\n";
+            txt += "version=" + selectedMod.ModVersion + "\n";
+            txt += "description=" + selectedMod.ModDescription + "\n";
+
+            File.WriteAllText(Path.Combine(selectedMod.path, "modinfo.txt"), txt);
+        }
+
+        private void ModNameBox_TextChanged(object sender, EventArgs e)
+        {
+            mods[checkedListBox1.SelectedIndex].InternalName = ModNameBox.Text.Replace("\n", "").Replace("\r", "");
+            WriteNewModInfoTxt(mods[checkedListBox1.SelectedIndex]);
+        }
+
+        private void ModAuthorBox_TextChanged(object sender, EventArgs e)
+        {
+            mods[checkedListBox1.SelectedIndex].Author = ModAuthorBox.Text.Replace("\n", "").Replace("\r", "");
+            WriteNewModInfoTxt(mods[checkedListBox1.SelectedIndex]);
+        }
+
+        private void ModVersionBox_TextChanged(object sender, EventArgs e)
+        {
+            mods[checkedListBox1.SelectedIndex].ModVersion = ModVersionBox.Text.Replace("\n", "").Replace("\r", "");
+            WriteNewModInfoTxt(mods[checkedListBox1.SelectedIndex]);
+        }
+
+        private void ModDescriptionBox_TextChanged(object sender, EventArgs e)
+        {
+            mods[checkedListBox1.SelectedIndex].ModDescription = ModDescriptionBox.Text.Replace("\n", "<newline>");
+            WriteNewModInfoTxt(mods[checkedListBox1.SelectedIndex]);
+        }
     }
 }
