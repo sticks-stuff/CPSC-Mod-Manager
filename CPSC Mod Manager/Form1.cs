@@ -72,8 +72,13 @@ namespace CPSC_Mod_Manager
 
                 foreach (DirectoryInfo dirInfo in modDir.GetDirectories())
                     {
-                    mod newMod = new mod(dirInfo.FullName, Path.GetFileNameWithoutExtension(dirInfo.FullName), false);
+                    if (Path.GetFileName(dirInfo.FullName) == "src")
+                        {
+                        continue;
+                        }
 
+                    mod newMod = new mod(dirInfo.FullName, Path.GetFileNameWithoutExtension(dirInfo.FullName), false);
+                    
                     checkedListBox1.Items.Add(newMod.displayname);
 
                     string modInfoPath = Path.Combine(dirInfo.FullName, "modinfo.txt");
