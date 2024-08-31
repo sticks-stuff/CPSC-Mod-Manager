@@ -121,15 +121,17 @@ namespace CPSC_Mod_Manager
                         }
 
                     if (enableds_from_config.ContainsKey(newMod.displayname))   //if this mod is enabled in mod_config.ini, tick its box in the mod manager
-                        {
+                    {
                         if (enableds_from_config[newMod.displayname])
-                            {
+                        {
                             checkedListBox1.SetItemChecked(checkedListBox1.Items.IndexOf(newMod.displayname),true);
-                            }
+                        newMod.enabled = true;
                         }
+                    }
 
                     mods.Add(newMod);
                     }
+            WriteConfig();
         }
 
         public void LoadConfig() {
@@ -157,32 +159,41 @@ namespace CPSC_Mod_Manager
 
         private void checkedListBox1_ItemCheck(object sender, ItemCheckEventArgs e)
         {
+            for (int i = 0; i < mods.Count; i++)
+            {
+                if (mods[i].displayname == (string)checkedListBox1.Items[e.Index])
+                {
+                    if (e.NewValue == CheckState.Checked)
+                    {
+                        mods[i].enabled = true;
+                        EnableModFiles(mods[i].path);
+                    }
+                    else
+                    {
+                        mods[i].enabled = false;
+                        RestoreVanillaFiles(mods[i].path);
+                    }
+                }
+            }
+
+            WriteConfig();
+        }
+
+        private void WriteConfig()
+        {
             string newconfig = "";
 
             for (int i = 0; i < mods.Count; i++)
-                {
-                if (mods[i].displayname == (string)checkedListBox1.Items[e.Index])
-                    {
-                    if (e.NewValue == CheckState.Checked)
-                        {
-                        mods[i].enabled = true;
-                        EnableModFiles(mods[i].path);
-                        }
-                    else
-                        {
-                        mods[i].enabled = false;
-                        RestoreVanillaFiles(mods[i].path);
-                        }
-                    }
+            {
                 string enabled = "false";
                 if (mods[i].enabled)
-                    {
+                {
                     enabled = "true";
-                    }
-                newconfig += mods[i].displayname + "," + enabled + "\n";
                 }
+                newconfig += mods[i].displayname + "," + enabled + "\n";
+            }
 
-            File.WriteAllText(configPath,newconfig);
+            File.WriteAllText(configPath, newconfig);
         }
 
         public void EnableModFiles(string modPath)
